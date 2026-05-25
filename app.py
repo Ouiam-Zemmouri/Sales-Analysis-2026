@@ -140,17 +140,19 @@ def load_data():
 df_raw = load_data()
 
 # ── SIDEBAR ──
+
 with st.sidebar:
     st.markdown("""<div style="text-align:center;padding:20px 0 14px;">
         <img src="https://raw.githubusercontent.com/Ouiam-Zemmouri/LME_Sales-Analysis/main/COFICAB.png"
              style="max-width:148px;border-radius:10px;
-                    filter:drop-shadow(0 4px 14px rgba(184,115,51,0.25));"/>
+                    filter:drop-shadow(0 4px 14px rgba(139,94,60,0.25));"/>
     </div>""", unsafe_allow_html=True)
     st.markdown("---")
+    st.markdown("## 🔍 Filters")
+
     if st.button("🔄 Refresh Data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-    st.markdown("## 🔍 Filters")
 
     def mf(label, col, order=None):
         if col not in df_raw.columns: return []
@@ -161,20 +163,6 @@ with st.sidebar:
                              placeholder="All", label_visibility="collapsed")
         return sel if sel else vals
 
-    def ins(s, v):
-        """Include NaN rows when no filter selected (show all)."""
-        return s.astype(str).isin([str(x) for x in v]) | s.isna()
-
-    def ms(label, col):
-        if col not in df_raw.columns: return (0.0,1.0)
-        s = df_raw[col].dropna()
-        if s.empty: return (0.0,1.0)
-        mn,mx = float(s.min()), float(s.max())
-        if mn==mx: mx+=0.001
-        st.markdown(f'<p class="filter-label">{label}</p>', unsafe_allow_html=True)
-        return st.slider("",mn,mx,(mn,mx),key=f"sld_{col}",label_visibility="collapsed")
-
-    # Entity: force only real entity values
     ent_vals = sorted(df_raw["ENTITY"].dropna().astype(str).unique().tolist())
     st.markdown('<p class="filter-label">Entity</p>', unsafe_allow_html=True)
     sel_ent = st.multiselect("", ent_vals, default=[], key="flt_ENTITY",
@@ -188,12 +176,24 @@ with st.sidebar:
     f_fix    = mf("Fixation",       "FIXATION")
     f_spool  = mf("Spool Type",     "SPOOL_TYPE")
     f_lmeprj = mf("LME Projects",   "LME_PROJECTS")
+
+    # LME sliders — display only, not used in filter
+    s_lme = df_raw["LME_SALES"].dropna()
+    s_bas = df_raw["BASIC_LME"].dropna()
+    lme_mn,lme_mx = round(float(s_lme.min()),4), round(float(s_lme.max()),4)
+    bas_mn,bas_mx = round(float(s_bas.min()),4), round(float(s_bas.max()),4)
+    if lme_mn==lme_mx: lme_mx+=0.0001
+    if bas_mn==bas_mx: bas_mx+=0.0001
+    st.markdown('<p class="filter-label">LME Sales (€/kg)</p>', unsafe_allow_html=True)
+    st.slider("",lme_mn,lme_mx,(lme_mn,lme_mx),key="lme_disp",format="%.4f",label_visibility="collapsed")
+    st.markdown('<p class="filter-label">Basic LME (€/kg)</p>', unsafe_allow_html=True)
+    st.slider("",bas_mn,bas_mx,(bas_mn,bas_mx),key="bas_disp",format="%.4f",label_visibility="collapsed")
     st.markdown("---")
 
-# ── PRE-FILTER (without LME sliders) to compute dynamic ranges ──
+# ── FILTER — only categorical filters, no LME ──
 def ins(s,v): return s.astype(str).isin([str(x) for x in v]) | s.isna()
 
-df_pre = df_raw[
+df = df_raw[
     ins(df_raw["ENTITY"],       f_entity)  &
     ins(df_raw["MONTH_NAME"],   f_month)   &
     ins(df_raw["RM"],           f_rm)      &
@@ -203,10 +203,6 @@ df_pre = df_raw[
     ins(df_raw["SPOOL_TYPE"],   f_spool)   &
     ins(df_raw["LME_PROJECTS"], f_lmeprj)
 ].copy()
-
-
-# ── FULL FILTER ──
-df = df_pre.copy()
 
 if df.empty:
     st.warning("⚠️ No data matches the selected filters. Please reset your filters.")
@@ -246,7 +242,7 @@ def alay(fig, **kw):
 # ── TITLE ──
 st.markdown("""<div class="title-banner">
   <h1>Sales Analysis 2026</h1>
-  <p>COFICAB Kenitra · COFICAB Maroc</p>
+  <p>COFICAB Kenitra · COFICAB Maroc · v2.5</p>
 </div>""", unsafe_allow_html=True)
 
 
@@ -906,4 +902,6 @@ with tab7:
                         text_auto=".2s", labels={"Revenue":"Revenue (€)","MONTH_NAME":"Month"})
         alay(fig_em)
         st.plotly_chart(fig_em, use_container_width=True)
+
+
 
