@@ -903,4 +903,3 @@ with tab7:
         alay(fig_em)
         st.plotly_chart(fig_em, use_container_width=True)
 
-
