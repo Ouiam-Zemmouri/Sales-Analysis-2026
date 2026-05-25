@@ -904,4 +904,3 @@ with tab7:
         st.plotly_chart(fig_em, use_container_width=True)
 
 
-
